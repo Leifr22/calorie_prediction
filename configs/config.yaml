@@ -1,0 +1,51 @@
+# =========================================================
+# Конфиг обучения модели предсказания калорийности блюд
+# =========================================================
+
+# --- Пути ---
+paths:
+  data_dir: C:\Users\Пользователь1\Downloads\nutrition\data                   # корень датасета (где лежат dish.csv, ingredients.csv, images/)
+  dish_csv: C:\Users\Пользователь1\Downloads\nutrition\data\dish.csv
+  ingredients_csv: C:\Users\Пользователь1\Downloads\nutrition\data\ingredients.csv
+  images_dir: C:\Users\Пользователь1\Downloads\nutrition\data\images
+  checkpoints_dir: checkpoints      # куда сохранять чекпоинты
+  best_model_name: best_model.pth   # имя лучшего чекпоинта
+  last_model_name: last_model.pth   # имя последнего чекпоинта
+
+# --- Данные ---
+data:
+  image_size: 224                   # размер картинки на входе
+  num_workers: 4                    # параллельные воркеры DataLoader (Windows: 0 если будут падения)
+  batch_size: 64                    # 4070 Ti потянет; уменьши если OOM
+  val_fraction: 0.15                # доля train для валидации (test НЕ трогаем при обучении)
+  filter_zero_calories: true        # выкидывать блюда с total_calories == 0
+  filter_zero_mass: true            # выкидывать блюда с total_mass == 0
+  max_ingredients: 40               # обрезать длину списка ингредиентов (max в данных = 34)
+
+# --- Модель ---
+model:
+  backbone: efficientnet_b0         # любая модель из timm (resnet50, convnext_tiny, ...)
+  pretrained: true                  # использовать веса ImageNet
+  ingr_vocab_size: 556              # 555 ингредиентов + 1 PAD-токен (id=0)
+  ingr_emb_dim: 64                  # размерность embedding для ингредиентов
+  mlp_hidden: 256                   # размер скрытого слоя в голове
+  dropout: 0.3                      # регуляризация
+
+# --- Обучение ---
+train:
+  epochs: 30
+  lr_head: 1.0e-3                   # LR для головы и embedding (новые слои)
+  lr_backbone: 1.0e-4               # LR для бэкбона (fine-tune)
+  weight_decay: 1.0e-4
+  scheduler: cosine                 # cosine | none
+  early_stopping_patience: 8        # эпох без улучшения — остановка
+  loss: smooth_l1                   # smooth_l1 | l1 | mse
+  predict_density: true             # предсказывать ккал/г, потом ×mass; иначе — напрямую ккал
+  log_every_n_batches: 20
+
+# --- Воспроизводимость ---
+seed: 42
+deterministic: true                 # включить детерминизм (медленнее, но воспроизводимо)
+
+# --- Девайс ---
+device: cuda                        # cuda | cpu
